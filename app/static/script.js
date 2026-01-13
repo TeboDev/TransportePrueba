@@ -2,6 +2,9 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchMetadata();
     fetchPasajes();
 
+    // Reset form state on load
+    resetForm();
+
     // Event Listener for Filters
     document.getElementById('filter-ruta').addEventListener('change', (e) => {
         fetchPasajes(e.target.value);
@@ -19,25 +22,28 @@ document.addEventListener('DOMContentLoaded', () => {
             nombre_pasajero: document.getElementById('input-nombre').value
         };
 
+        const isUpdate = currentPasajeId !== null;
+        const url = isUpdate ? `/api/pasajes/${currentPasajeId}` : '/api/pasajes';
+        const method = isUpdate ? 'PUT' : 'POST';
+
         try {
-            const response = await fetch('/api/pasajes', {
-                method: 'POST',
+            const response = await fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
 
             if (response.ok) {
                 // Reset form and reload list
-                e.target.reset();
-                // Set default date again
-                const now = new Date();
-                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                document.getElementById('input-fecha').value = now.toISOString().slice(0, 16);
-
+                resetForm();
                 fetchPasajes();
+                // If it was a filter active, maybe we want to keep it? For now fetch all or current filter
+                const currentFilter = document.getElementById('filter-ruta').value;
+                if (currentFilter) fetchPasajes(currentFilter);
+
             } else {
                 const err = await response.json();
-                alert('Error: ' + (err.error || 'No se pudo crear el pasaje'));
+                alert('Error: ' + (err.error || 'No se pudo guardar el pasaje'));
             }
         } catch (error) {
             console.error(error);
@@ -45,6 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+let currentPasajeId = null;
+let allPasajesData = []; // Store data to populate edit form
+
 
 async function fetchMetadata() {
     try {
@@ -98,6 +108,7 @@ async function fetchPasajes(rutaId = null) {
     try {
         const res = await fetch(url);
         const data = await res.json();
+        allPasajesData = data; // Store for editing lookup
 
         tbody.innerHTML = '';
         if (data.length === 0) {
@@ -115,6 +126,7 @@ async function fetchPasajes(rutaId = null) {
                 <td>${p.NOMBRE_PASAJERO}</td>
                 <td>$${p.VALOR_FINAL.toFixed(2)}</td>
                 <td>
+                    <button class="edit-btn" onclick="editPasaje(${p.ID_PASAJE})" style="margin-right: 5px;">Editar</button>
                     <button class="delete-btn" onclick="deletePasaje(${p.ID_PASAJE})">Eliminar</button>
                 </td>
             `;
@@ -134,12 +146,49 @@ async function deletePasaje(id) {
         const res = await fetch(`/api/pasajes/${id}`, { method: 'DELETE' });
         if (res.ok) {
             fetchPasajes(document.getElementById('filter-ruta').value); // Reload with current filter
+            if (currentPasajeId === id) resetForm(); // Reset if we deleted the one being edited
         } else {
             alert('Error al eliminar');
         }
     } catch (e) {
         console.error(e);
     }
+}
+
+function editPasaje(id) {
+    const pasaje = allPasajesData.find(p => p.ID_PASAJE === id);
+    if (!pasaje) return;
+
+    currentPasajeId = id;
+
+    // UPDATE FORM UI
+    document.getElementById('form-title').textContent = `Editar Pasaje #${id}`;
+    document.querySelector('#pasaje-form button[type="submit"]').textContent = 'Actualizar Pasaje';
+
+    // Populate Fields
+    document.getElementById('input-ruta').value = pasaje.ID_RUTA;
+    document.getElementById('input-unidad').value = pasaje.ID_UNIDAD;
+    document.getElementById('input-tipo').value = pasaje.ID_TIPO_PASAJE;
+    document.getElementById('input-nombre').value = pasaje.NOMBRE_PASAJERO;
+
+    // Format Date for Input (YYYY-MM-DDTHH:MM)
+    if (pasaje.FECHA_VIAJE) {
+        // pasaje.FECHA_VIAJE is ISO string from backend (2025-01-13T10:00:00)
+        // input requires the same format so it should work directly usually
+        document.getElementById('input-fecha').value = pasaje.FECHA_VIAJE.slice(0, 16);
+    }
+}
+
+function resetForm() {
+    currentPasajeId = null;
+    document.getElementById('pasaje-form').reset();
+    document.getElementById('form-title').textContent = 'Nuevo Pasaje';
+    document.querySelector('#pasaje-form button[type="submit"]').textContent = 'Emitir Pasaje';
+
+    // Set default date
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('input-fecha').value = now.toISOString().slice(0, 16);
 }
 
 function formatDate(isoString) {

@@ -71,7 +71,7 @@ def get_pasajes():
     
     cursor = conn.cursor()
     query = """
-        SELECT P.ID_PASAJE, P.FECHA_VIAJE, R.NOMBRE_RUTA, U.NUMERO_DISCO, TP.DESCRIPCION, P.VALOR_FINAL, P.NOMBRE_PASAJERO
+        SELECT P.ID_PASAJE, P.FECHA_VIAJE, R.NOMBRE_RUTA, P.ID_RUTA, U.NUMERO_DISCO, P.ID_UNIDAD, TP.DESCRIPCION, P.ID_TIPO_PASAJE, P.VALOR_FINAL, P.NOMBRE_PASAJERO
         FROM PASAJES P
         JOIN RUTAS R ON P.ID_RUTA = R.ID_RUTA
         JOIN UNIDADES U ON P.ID_UNIDAD = U.ID_UNIDAD
@@ -136,6 +136,51 @@ def create_pasaje():
         })
         conn.commit()
         return jsonify({"message": "Pasaje creado exitosamente", "valor": valor_final}), 201
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/pasajes/<int:id>', methods=['PUT'])
+def update_pasaje(id):
+    data = request.json
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "Database connection failed"}), 500
+        
+    cursor = conn.cursor()
+    try:
+        # Calculate value based on base price and discount (Same logic as Create)
+        cursor.execute("SELECT PRECIO_BASE FROM RUTAS WHERE ID_RUTA = :id", [data['id_ruta']])
+        precio_base = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT PORCENTAJE_DESCUENTO FROM TIPOS_PASAJE WHERE ID_TIPO_PASAJE = :id", [data['id_tipo']])
+        descuento = cursor.fetchone()[0]
+        
+        valor_final = precio_base * (1 - (descuento/100))
+        
+        cursor.execute("""
+            UPDATE PASAJES 
+            SET FECHA_VIAJE = TO_DATE(:fecha, 'YYYY-MM-DD HH24:MI'),
+                ID_RUTA = :ruta,
+                ID_UNIDAD = :unidad,
+                ID_TIPO_PASAJE = :tipo,
+                VALOR_FINAL = :valor,
+                NOMBRE_PASAJERO = :nombre
+            WHERE ID_PASAJE = :id
+        """, {
+            'fecha': data['fecha__viaje'], # Expecting 'YYYY-MM-DD HH:MM'
+            'ruta': data['id_ruta'],
+            'unidad': data['id_unidad'],
+            'tipo': data['id_tipo'],
+            'valor': valor_final,
+            'nombre': data['nombre_pasajero'],
+            'id': id
+        })
+        conn.commit()
+        return jsonify({"message": "Pasaje actualizado exitosamente", "valor": valor_final}), 200
     except Exception as e:
         conn.rollback()
         return jsonify({"error": str(e)}), 500

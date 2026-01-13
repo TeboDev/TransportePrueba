@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Transporte - Cooperativa</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="feather feather-truck">
+                    <rect x="1" y="3" width="15" height="13"></rect>
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                </svg>
+                <h1>Cooperativa de Transporte</h1>
+            </div>
+            <div class="actions">
+                <a href="/export/csv" class="btn btn-outline" id="btn-export">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Exportar CSV
+                </a>
+            </div>
+        </header>
+
+        <main>
+            <section class="filters">
+                <h2>Gestión de Pasajes</h2>
+                <div class="filter-group">
+                    <label for="filter-ruta">Filtrar por Ruta:</label>
+                    <select id="filter-ruta">
+                        <option value="">Todas las rutas</option>
+                        <!-- Options populated via JS -->
+                    </select>
+                </div>
+            </section>
+
+            <div class="content-grid">
+                <!-- Formulario -->
+                <aside class="form-panel">
+                    <h3>Nuevo Pasaje</h3>
+                    <form id="pasaje-form">
+                        <div class="form-group">
+                            <label>Ruta</label>
+                            <select id="input-ruta" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Unidad (Disco)</label>
+                            <select id="input-unidad" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo Pasaje</label>
+                            <select id="input-tipo" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha y Hora Viaje</label>
+                            <input type="datetime-local" id="input-fecha" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre Pasajero</label>
+                            <input type="text" id="input-nombre" placeholder="Nombre completo" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Emitir Pasaje</button>
+                    </form>
+                </aside>
+
+                <!-- Listado -->
+                <section class="list-panel">
+                    <div id="loading" class="hidden">Cargando...</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Ruta</th>
+                                <th>Disco</th>
+                                <th>Tipo</th>
+                                <th>Pasajero</th>
+                                <th>Valor</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pasajes-body">
+                            <!-- Rows populated via JS -->
+                        </tbody>
+                    </table>
+                </section>
+            </div>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
